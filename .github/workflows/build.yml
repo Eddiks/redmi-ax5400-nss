@@ -10,6 +10,15 @@ on:
         default: "v2026.10.23-ath11k"
         type: string
 
+      wifi_nss_offload:
+        description: "Enable Wi-Fi NSS Offload"
+        required: true
+        default: "on"
+        type: choice
+        options:
+          - "on"
+          - "off"
+
 permissions:
   contents: read
 
@@ -61,6 +70,48 @@ jobs:
         run: |
           cp ra74/build.config .config
           make defconfig
+
+      - name: Configure Wi-Fi NSS Offload # Added code to trigger wifi NSS Offload in compilation
+        env:
+          WIFI_NSS_OFFLOAD: ${{ inputs.wifi_nss_offload }}
+        run: |
+          set -euo pipefail
+
+          D=package/nss/nss-tools/files/nss-dwmac.defaults
+
+          if [ "$WIFI_NSS_OFFLOAD" = "on" ]; then
+            echo "Enabling Wi-Fi NSS Offload by default..."
+
+            # 1. Enable Wi-Fi NSS offload for Redmi AX5400
+            sed -i "/xiaomi,redmi-ax5400)/,/;;/ s/wifi_offload='0'/wifi_offload='1'/" "$D"
+
+            # 2. Remove first-migration logic that forces offload to 0
+            sed -i "/redmi-ax5400' ] || uci set nss.general.wifi_offload='0'/d" "$D"
+
+            # 3. Update expected defaults in the test
+            sed -i "s/'nss.general.wifi_offload': '0', 'nss.general.topology'/'nss.general.wifi_offload': '1', 'nss.general.topology'/" ra74/tests/check_defaults.py
+
+            # Verify modifications
+            grep -Fq "wifi_offload='1'" "$D"
+            ! grep -Fq "redmi-ax5400' ] || uci set nss.general.wifi_offload='0'" "$D"
+            grep -Fq "'nss.general.wifi_offload': '1'" ra74/tests/check_defaults.py
+
+          elif [ "$WIFI_NSS_OFFLOAD" = "off" ]; then
+            echo "Keeping original Wi-Fi NSS Offload defaults..."
+
+            # Verify original defaults remain unchanged
+            grep -Fq "wifi_offload='0'" "$D"
+            grep -Fq "redmi-ax5400' ] || uci set nss.general.wifi_offload='0'" "$D"
+            grep -Fq "'nss.general.wifi_offload': '0'" ra74/tests/check_defaults.py
+
+          else
+            echo "Invalid Wi-Fi NSS Offload option"
+            exit 1
+          fi
+
+          echo "Wi-Fi NSS Offload setting: $WIFI_NSS_OFFLOAD"
+
+          git diff --stat
 
       - name: Run project checks
         run: |
