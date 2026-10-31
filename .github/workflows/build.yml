@@ -32,6 +32,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
+          repository: Yongzhaooo/redmi-ax5400-nss
           ref: ${{ inputs.source_ref }}
           fetch-depth: 1
 
@@ -126,7 +127,17 @@ jobs:
       - name: Compile firmware
         run: |
           make -j2 V=s
+          
+      - name: Verify firmware target
+        run: |
+          TARGET=bin/targets/qualcommax/ipq50xx
 
+          test -d "$TARGET"
+
+          find "$TARGET" -maxdepth 1 -type f \
+            -name '*xiaomi_redmi-ax5400*' \
+            | grep .
+            
       - name: Prepare build information
         if: success()
         run: |
