@@ -64,8 +64,10 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           ./scripts/feeds uninstall \
-            librespeed-cli librespeed-cli-rust \
-            luci-app-librespeed
+            librespeed-cli \ 
+            librespeed-cli-rust \
+            luci-app-librespeed \
+            librespeed-common
 
       - name: Configure firmware
         run: |
