@@ -20,7 +20,7 @@ on:
           - "off"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -140,14 +140,33 @@ jobs:
             -name '*xiaomi_redmi-ax5400*' \
             | grep .
             
+      #- name: Prepare build information
+      #  if: success()
+      #  run: |
+      #    TARGET=bin/targets/qualcommax/ipq50xx
+      #    mkdir -p build-info
+      #    cp .config build-info/
+      #    cp ra74/build.config build-info/build.config
+      #    cp "$TARGET/sha256sums" build-info/ 2>/dev/null || true
+      #    cp "$TARGET/manifest" build-info/ 2>/dev/null || true
+      #    df -h
+
       - name: Prepare build information
         if: success()
         run: |
           TARGET=bin/targets/qualcommax/ipq50xx
           mkdir -p build-info
-          cp .config build-info/
-          cp "$TARGET/sha256sums" build-info/ 2>/dev/null || true
-          cp "$TARGET/manifest" build-info/ 2>/dev/null || true
+          cp .config build-info/config.txt
+          cp ra74/build.config build-info/build.config
+          find "$TARGET" -maxdepth 2 -type f \
+            \( -iname '*manifest*' -o -name 'sha256sums' \) \
+            -exec cp {} build-info/ \;
+          echo "=== Build information files ==="
+          ls -lah build-info/
+          echo "=== Firmware files ==="
+          find "$TARGET" -maxdepth 1 -type f \
+            -name '*xiaomi_redmi-ax5400*' \
+            -exec ls -lh {} \;
           df -h
 
       - name: Upload firmware
@@ -160,3 +179,18 @@ jobs:
             build-info/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: RA74-build-${{ github.run_number }}-${{ github.run_attempt }}
+          name: Redmi AX5400 RA74 Firmware #${{ github.run_number }}
+          target_commitish: ${{ inputs.source_ref }}
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            bin/targets/qualcommax/ipq50xx/*xiaomi_redmi-ax5400*.bin
+            build-info/build.config
+            build-info/.config
+            build-info/sha256sums
