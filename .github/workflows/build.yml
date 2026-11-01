@@ -151,7 +151,7 @@ jobs:
         run: |
           echo "BUILD_DATE=$(TZ=Asia/Shanghai date '+%Y-%m-%d')" >> "$GITHUB_ENV"
           echo "BUILD_TIME=$(TZ=Asia/Shanghai date '+%H:%M:%S')" >> "$GITHUB_ENV"
-          echo "BUILD_DATETIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')" >> "$GITHUB_ENV"
+          echo "BUILD_DATETIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S UTC+8')" >> "$GITHUB_ENV"
 
       - name: Prepare build information
         if: success()
@@ -182,12 +182,6 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           
-      - name: Set build date and time
-        run: |
-          echo "BUILD_DATE=$(date -u '+%Y-%m-%d')" >> "$GITHUB_ENV"
-          echo "BUILD_TIME=$(date -u -d '+8 hours' '+%H:%M:%S')" >> "$GITHUB_ENV"
-          echo "BUILD_DATETIME=$(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S CST')" >> "$GITHUB_ENV"
-
       - name: Publish GitHub Release
         if: success()
         uses: softprops/action-gh-release@v2
