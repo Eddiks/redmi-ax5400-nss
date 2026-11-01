@@ -78,6 +78,7 @@ jobs:
       - name: Configure firmware
         run: |
           cp ra74/build.config .config
+          cat ra74/packages.config >> .config
           make defconfig
 
       - name: Configure Wi-Fi NSS Offload # Added code to trigger wifi NSS Offload in compilation
