@@ -147,6 +147,12 @@ jobs:
       #    cp "$TARGET/manifest" build-info/ 2>/dev/null || true
       #    df -h
 
+      - name: Set build date and time
+        run: |
+          echo "BUILD_DATE=$(TZ=Asia/Shanghai date '+%Y-%m-%d')" >> "$GITHUB_ENV"
+          echo "BUILD_TIME=$(TZ=Asia/Shanghai date '+%H:%M:%S')" >> "$GITHUB_ENV"
+          echo "BUILD_DATETIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')" >> "$GITHUB_ENV"
+
       - name: Prepare build information
         if: success()
         run: |
