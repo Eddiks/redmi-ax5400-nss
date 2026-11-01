@@ -175,18 +175,33 @@ jobs:
             build-info/
           if-no-files-found: error
           retention-days: 14
+          
+      - name: Set build date and time
+        run: |
+          echo "BUILD_DATE=$(date -u '+%Y-%m-%d')" >> "$GITHUB_ENV"
+          echo "BUILD_TIME=$(date -u -d '+8 hours' '+%H:%M:%S')" >> "$GITHUB_ENV"
+          echo "BUILD_DATETIME=$(date -u -d '+8 hours' '+%Y-%m-%d %H:%M:%S CST')" >> "$GITHUB_ENV"
 
       - name: Publish GitHub Release
         if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: RA74-build-${{ github.run_number }}-${{ github.run_attempt }}
-          name: Redmi AX5400 RA74 Firmware #${{ github.run_number }}
-          target_commitish: ${{ inputs.source_ref }}
+          name: Redmi AX5400 RA74 Firmware - ${{ env.BUILD_DATE }} ${{ env.BUILD_TIME }} (UTC+8)
+          body: |
+            ## Redmi AX5400 RA74 Firmware
+
+            - Build date: ${{ env.BUILD_DATE }}
+            - Build time: ${{ env.BUILD_TIME }} (UTC+8)
+            - Source version: ${{ inputs.source_ref }}
+            - Wi-Fi NSS Offload: ${{ inputs.wifi_nss_offload }}
+            - Build run: #${{ github.run_number }}
+
           prerelease: true
-          generate_release_notes: true
+          generate_release_notes: false
           files: |
             bin/targets/qualcommax/ipq50xx/*xiaomi_redmi-ax5400*.bin
             build-info/build.config
-            build-info/.config
+            build-info/config.txt
+            build-info/*manifest*
             build-info/sha256sums
