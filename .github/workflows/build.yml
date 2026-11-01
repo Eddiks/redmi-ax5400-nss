@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: "Source branch or tag"
+        description: "Source branch or tag in this repository"
         required: true
-        default: "v2026.10.23-ath11k"
+        default: "main"
         type: string
 
       wifi_nss_offload:
@@ -32,7 +32,6 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
-          repository: Yongzhaooo/redmi-ax5400-nss
           ref: ${{ inputs.source_ref }}
           fetch-depth: 1
 
@@ -129,11 +128,9 @@ jobs:
       - name: Verify firmware target
         run: |
           TARGET=bin/targets/qualcommax/ipq50xx
-
           test -d "$TARGET"
-
           find "$TARGET" -maxdepth 1 -type f \
-            -name '*xiaomi_redmi-ax5400*' \
+            -name '*xiaomi_redmi-ax5400*.bin' \
             | grep .
             
       #- name: Prepare build information
@@ -157,17 +154,33 @@ jobs:
         if: success()
         run: |
           TARGET=bin/targets/qualcommax/ipq50xx
-          mkdir -p build-info
+          mkdir -p build-info release-assets
+          # Save build configurations
           cp .config build-info/config.txt
           cp ra74/build.config build-info/build.config
+          # Copy required release files
+          cp .config release-assets/config.txt
+          cp ra74/build.config release-assets/build.config
+          # Copy firmware BIN files
+          find "$TARGET" -maxdepth 1 -type f \
+            -name '*xiaomi_redmi-ax5400*.bin' \
+            -exec cp {} release-assets/ \;
+          # Verify firmware exists
+          test -n "$(find release-assets -maxdepth 1 -type f \
+            -name '*.bin' -print -quit)"
+          # Copy optional manifest and checksum files
           find "$TARGET" -maxdepth 2 -type f \
             \( -iname '*manifest*' -o -name 'sha256sums' \) \
-            -exec cp {} build-info/ \;
-          echo "=== Build information files ==="
+            -exec cp -n {} build-info/ \;
+          find "$TARGET" -maxdepth 2 -type f \
+            \( -iname '*manifest*' -o -name 'sha256sums' \) \
+            -exec cp -n {} release-assets/ \;
+          echo "=== Build information ==="
           ls -lah build-info/
+          echo "=== Release assets ==="
+          ls -lah release-assets/
           echo "=== Firmware files ==="
-          find "$TARGET" -maxdepth 1 -type f \
-            -name '*xiaomi_redmi-ax5400*' \
+          find release-assets -maxdepth 1 -type f -name '*.bin' \
             -exec ls -lh {} \;
           df -h
 
@@ -179,6 +192,7 @@ jobs:
           path: |
             bin/targets/qualcommax/ipq50xx/
             build-info/
+            release-assets/
           if-no-files-found: error
           retention-days: 14
           
@@ -193,15 +207,13 @@ jobs:
 
             - Build date: ${{ env.BUILD_DATE }}
             - Build time: ${{ env.BUILD_TIME }} (UTC+8)
-            - Source version: ${{ inputs.source_ref }}
+            - Source repository: ${{ env.SOURCE_REPOSITORY }}
+            - Source branch/tag: ${{ inputs.source_ref }}
+            - Source commit: ${{ env.SOURCE_COMMIT }}
             - Wi-Fi NSS Offload: ${{ inputs.wifi_nss_offload }}
             - Build run: #${{ github.run_number }}
 
           prerelease: true
           generate_release_notes: false
           files: |
-            bin/targets/qualcommax/ipq50xx/*xiaomi_redmi-ax5400*.bin
-            build-info/build.config
-            build-info/config.txt
-            build-info/*manifest*
-            build-info/sha256sums
+            release-assets/*
