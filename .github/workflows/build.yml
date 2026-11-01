@@ -34,7 +34,18 @@ jobs:
         with:
           ref: ${{ inputs.source_ref }}
           fetch-depth: 1
+          
+      - name: Record source revision
+        run: |
+          echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
+      - name: Verify source information
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Source branch/tag: ${{ inputs.source_ref }}"
+          echo "Source commit: $SOURCE_COMMIT"
+          test -n "$SOURCE_COMMIT"
+          
       - name: Show build environment
         run: |
           df -h
@@ -190,7 +201,6 @@ jobs:
         with:
           name: Redmi-AX5400-RA74-Firmware
           path: |
-            bin/targets/qualcommax/ipq50xx/
             build-info/
             release-assets/
           if-no-files-found: error
@@ -201,13 +211,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: RA74-build-${{ github.run_number }}-${{ github.run_attempt }}
+          target_commitish: ${{ env.SOURCE_COMMIT }}
           name: Redmi AX5400 RA74 Firmware - ${{ env.BUILD_DATE }} ${{ env.BUILD_TIME }} (UTC+8)
           body: |
             ## Redmi AX5400 RA74 Firmware
 
             - Build date: ${{ env.BUILD_DATE }}
             - Build time: ${{ env.BUILD_TIME }} (UTC+8)
-            - Source repository: ${{ env.SOURCE_REPOSITORY }}
+            - Source repository: ${{ github.repository }}
             - Source branch/tag: ${{ inputs.source_ref }}
             - Source commit: ${{ env.SOURCE_COMMIT }}
             - Wi-Fi NSS Offload: ${{ inputs.wifi_nss_offload }}
