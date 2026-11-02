@@ -131,11 +131,11 @@ jobs:
 
       - name: Download sources
         run: |
-          make -j2 download
+          make -j$(nproc) download
 
       - name: Compile firmware
         run: |
-          make -j2 V=s
+          make -j$(($(nproc) > 2 ? $(nproc) - 1 : 2)) V=s
           
       - name: Verify firmware target
         run: |
